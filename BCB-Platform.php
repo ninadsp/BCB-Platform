@@ -71,52 +71,132 @@ function bcbp_admin_content_callback()
     
     $TRACKS = get_option("bcbp_trackdata");
     $SLOTS = get_option("bcbp_slotdata");
-        
+    
+    // Do we need to store the current phase/tab choice in an option and detect it from there?
+    $bcbp_tab_choice = isset($_REQUEST['bcbp_tab_choice']) ? $_REQUEST['bcbp_tab_choice'] : 'setup';        
     ?>
+    
+    <div class="wrap">
+    <h2>BCB Platform Settings</h2>
+    
+    <h2 id="bcbp_admin_tab_header" class="nav-tab-wrapper">
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "setup") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=setup">Setup</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "schedule") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=schedule">Schedule</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "swap") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=swap">Swap</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "update") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=update">Update</a>
+    </h2>
+    
+    <?php 
 
-    BCB Platform Settings
-    
-    <form>
-        <?php for ($i = 0; $i < $NUM_TRACKS; $i++): ?>
-        Track <?php echo $i+1; ?> <input type="text" name="track<?php echo $i; ?>" value="<?php echo $TRACKS[$i]; ?>" /><br/>
-        <?php endfor;  ?>
-        
-        
-        <br/><br/>
-        <?php for ($i = 0; $i < $NUM_SLOTS; $i++): ?>
-        Slot <?php echo $i+1; ?> | 
-        
-        Type <select name="slot-select-<?php echo $i; ?>" >
-        
-            <option value="fixed" <?php if ($SLOTS[$i]['type'] == "fixed") echo 'selected' ?> >Fixed</option>
-            <option value="session"  <?php if ($SLOTS[$i]['type'] == "session") echo 'selected' ?> >Session</option>
-        </select>  
-        
-        Name <input type="text" name="slot-name-<?php echo $i; ?>" value="<?php echo $SLOTS[$i]['name']; ?>" />
-        Start Time <input type="number" name="slot-start-<?php echo $i; ?>"  value="<?php echo $SLOTS[$i]['start']; ?>" />
-        End Time <input type="number" name="slot-end-<?php echo $i; ?>"  value="<?php echo $SLOTS[$i]['end']; ?>" />
-        
-        
-        <br/>
-        <?php endfor;  ?>
-        
-    </form>
-    
-    
-    <pre>
-    <?php
-    
-    
-    print_r($SLOTS);
-    print_r($TRACKS);
-    
+
+        switch ($bcbp_tab_choice) {
+            case 'setup':
+
+            if(isset($_REQUEST['submit'])) {
+
+                // Validate and save options POSTed
+                $NUM_TRACKS = (int) stripslashes($_REQUEST['num_tracks']);
+                $NUM_SLOTS = (int) stripslashes($_REQUEST['num_slots']);
+
+                $TRACKS = array();
+                for($i = 0; $i < $NUM_TRACKS; $i++) {
+                    $TRACKS[$i] = stripslashes($_REQUEST['track'][$i]);
+                }
+
+                $SLOTS = array();
+                for($i = 0; $i < $NUM_SLOTS; $i++) {
+                    $SLOTS[$i]['type'] = stripslashes($_REQUEST['slot-select'][$i]);
+                    $SLOTS[$i]['name'] = stripslashes($_REQUEST['slot-name'][$i]);
+                    $SLOTS[$i]['start'] = stripslashes($_REQUEST['slot-start'][$i]);
+                    $SLOTS[$i]['end'] = stripslashes($_REQUEST['slot-end'][$i]);
+                }
+                
+                update_option('bcbp_num_tracks', $NUM_TRACKS);
+                update_option('bcbp_num_slots', $NUM_SLOTS);
+                update_option('bcbp_trackdata', $TRACKS);
+                update_option('bcbp_slotdata', $SLOTS);
+ 
+            }
     ?>
-    </pre>
-    
-    
+    <div id="bcbp_setup_container">
+        <form method="POST" action="" class="wp-admin">
+
+        	<fieldset>
+
+        		<div class="bcbp_input_container">
+                    <label for="num_tracks">Number of tracks</label>
+            		<input name="num_tracks" id="num_tracks" type="number" value="<?php echo $NUM_TRACKS; ?>" />
+                </div>
+
+        		<div class="bcbp_input_container">
+                    <label for="num_slots">Number of slots</label>
+            		<input name="num_slots" id="num_slots" type="number" value="<?php echo $NUM_SLOTS; ?>" />
+                </div>
+
+                <div class="clear">&nbsp;</div>
+
+                <?php for ($i = 0; $i < $NUM_TRACKS; $i++): ?>
+                <div class="bcbp_input_container">
+                    <div class="bcbp_track_container alignleft">
+                            <label>Track <?php echo $i+1; ?></label> 
+                            <input name="track[]" type="text" value="<?php echo $TRACKS[$i]; ?>" />
+                    </div>
+                </div>
+                <?php endfor;  ?>
+                
+                
+                <div class="clear">&nbsp;</div>
+                <?php for ($i = 0; $i < $NUM_SLOTS; $i++): ?>
+                
+                <div class="bcbp_input_container bcbp_slot_container">
+                    <label>Slot <?php echo $i+1; ?></label> 
+                    
+                    <label>Type</label>
+                    <select name="slot-select[]">
+                        <option value="fixed" <?php if ($SLOTS[$i]['type'] == "fixed") echo 'selected' ?> >Fixed</option>
+                        <option value="session"  <?php if ($SLOTS[$i]['type'] == "session") echo 'selected' ?> >Session</option>
+                    </select>
+                    
+                    <label>Name</label>
+                    <input name="slot-name[]" type="text" value="<?php echo $SLOTS[$i]['name']; ?>" />
+                    
+                    <label>Start Time</label>
+                    <input name="slot-start[]" type="number" value="<?php echo $SLOTS[$i]['start']; ?>" />
+                    
+                    <label>End Time</label>
+                    <input name="slot-end[]" type="number" value="<?php echo $SLOTS[$i]['end']; ?>" />
+                
+                </div>
+                <?php endfor;  ?>
+
+                <input name="submit" id="submit" type="submit" class="button button-primary" value="Save" />
+            <fieldset>
+        </form>
+    </div>
+    <!-- End div #bcbp_setup_container -->
     
     <?php
+            break;
+            
+            case 'schedule':
+                # code...
+                break;
+
+            case 'swap':
+                # code...
+                break;
+
+            case 'update':
+                # code...
+                break;
+
+            default:
+                # code...
+                break;
+        }
+        //end switch/case for choosing tabs
     
+    echo '</div>'; // end div class="wrap" around entire page
     
 }
 
