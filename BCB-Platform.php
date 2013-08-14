@@ -9,17 +9,25 @@
   License: GPL2
  */
 
+global $bcbp_db_version, $bcbp_db_prefix;
+$bcbp_db_version = '0.1';
+$bcbp_db_prefix = 'bcbp_';
+
 register_activation_hook(__FILE__, 'bcbp_plugin_activate');
 register_deactivation_hook(__FILE__, 'bcbp_plugin_deactivate');
+register_uninstall_hook(__FILE__, 'bcb_plugin_uninstall');
 
 
 add_action('admin_menu', 'bcbp_add_admin_menu');
 
 function bcbp_plugin_activate()
 {
+    global $wpdb, $bcbp_db_version, $bcbp_db_prefix;
+
     add_option("bcbp_num_tracks", 6);
     add_option("bcbp_num_slots", 11);
     add_option("bcbp_category", 6);
+    add_option("bcbp_android_version", 0);
 
     $TRACKS = array('Asteroids', 'Battleship', 'Contra', 'Diablo', 'Everquest', 'Fable');
     add_option("bcbp_trackdata", $TRACKS );
@@ -40,6 +48,36 @@ function bcbp_plugin_activate()
     
     
     add_option("bcbp_slotdata", $SLOTS);
+
+    $installed_version = get_option("bcbp_db_version");
+
+    if( $installed_version != $bcbp_db_version ) {
+            $selected_sessions_sql = "CREATE TABLE IF NOT EXISTS ".$wpdb->prefix.$bcbp_db_prefix."selected_sessions (
+                id int(3) NOT NULL AUTO_INCREMENT,
+                post_id int(10) NOT NULL,
+                author varchar(40) NOT NULL,
+                post_title varchar(1000) NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY unique_post (post_id)
+            );";
+            $session_user_mapping_sql = "CREATE TABLE IF NOT EXISTS ".$wpdb->prefix.$bcbp_db_prefix."session_user_mapping (
+                session int(11) NOT NULL,
+                user int(11) NOT NULL,
+                UNIQUE KEY unique_mapping (session, user)
+            );";
+            $generated_schedule_sql = "CREATE TABLE IF NOT EXISTS ".$wpdb->prefix.$bcbp_db_prefix."generated_schedule (
+                timeslot int(11) NOT NULL,
+                track int(11) NOT NULL,
+                session int(11) NOT NULL
+            );";
+
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($selected_sessions_sql);
+            dbDelta($session_user_mapping_sql);
+            dbDelta($generated_schedule_sql);
+
+            update_option("bcbp_db_version", $bcbp_db_version);
+    }
     
 }
 
@@ -52,7 +90,23 @@ function bcbp_plugin_deactivate()
     delete_option("bcbp_category");
     delete_option("bcbp_trackdata");
     delete_option("bcbp_slotdata");
+    delete_option("bcbp_android_version");
     
+}
+
+
+function bcbp_plugin_uninstall()
+{
+    global $wpdb, $bcbp_db_version, $bcbp_db_prefix;
+
+    $selected_sessions_sql = "DROP TABLE IF EXISTS ".$wpdb->prefix.$bcbp_db_prefix."selected_sessions;";
+    $session_user_mapping_sql = "DROP TABLE IF EXISTS ".$wpdb->prefix.$bcbp_db_prefix."session_user_mapping;";
+    $generated_schedule_sql = "DROP TABLE IF EXISTS ".$wpdb->prefix.$bcbp_db_prefix."generated_schedule;";
+
+    $wpdb->query($selected_sessions_sql);
+    $wpdb->query($session_user_mapping_sql);
+    $wpdb->query($generated_schedule_sql);
+    delete_option("bcbp_db_version");
 }
 
 
@@ -80,10 +134,10 @@ function bcbp_admin_content_callback()
     <h2>BCB Platform Settings</h2>
     
     <h2 id="bcbp_admin_tab_header" class="nav-tab-wrapper">
-        <a class="nav-tab <?php echo ($bcbp_tab_choice == "setup") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=setup">Setup</a>
-        <a class="nav-tab <?php echo ($bcbp_tab_choice == "schedule") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=schedule">Schedule</a>
-        <a class="nav-tab <?php echo ($bcbp_tab_choice == "swap") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=swap">Swap</a>
-        <a class="nav-tab <?php echo ($bcbp_tab_choice == "update") ? "nav-tab-active" : "" ; ?>" href="?bcbp_tab_choice=update">Update</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "setup") ? "nav-tab-active" : "" ; ?>" href="?page=bcbp_admin&bcbp_tab_choice=setup">Setup</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "schedule") ? "nav-tab-active" : "" ; ?>" href="?page=bcbp_admin&bcbp_tab_choice=schedule">Schedule</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "manual") ? "nav-tab-active" : "" ; ?>" href="?page=bcbp_admin&bcbp_tab_choice=manual">Manual</a>
+        <a class="nav-tab <?php echo ($bcbp_tab_choice == "publish") ? "nav-tab-active" : "" ; ?>" href="?page=bcbp_admin&bcbp_tab_choice=publish">Publish</a>
     </h2>
     
     <?php 
@@ -182,11 +236,11 @@ function bcbp_admin_content_callback()
                 # code...
                 break;
 
-            case 'swap':
+            case 'manual':
                 # code...
                 break;
 
-            case 'update':
+            case 'publish':
                 # code...
                 break;
 
