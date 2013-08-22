@@ -1,5 +1,17 @@
 jQuery(document).ready(function($){
     
+    /**
+    * ADMIN PAGE
+    */
+
+    /**
+    * Setup
+    */
+
+    /**
+    * Dynamically update the number of track fields in the form
+    * based on input
+    */
     $("input#num_tracks").change(function(){
 
         var _this = $(this).val();
@@ -25,6 +37,10 @@ jQuery(document).ready(function($){
         }
     });
 
+    /**
+    * Dynamically update the number of session fields in the form
+    * based on input
+    */
     $("input#num_slots").change(function() {
 
         var _this = $(this).val();

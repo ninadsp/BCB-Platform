@@ -20,6 +20,14 @@ register_uninstall_hook(__FILE__, 'bcb_plugin_uninstall');
 
 add_action('admin_menu', 'bcbp_add_admin_menu');
 
+/**
+* Executed everytime the administrator activates this plugin from the Plugin menu
+* Prefills slot and session information to wp_options as per BCB's need
+* Also creates/upgrades the tables required for storing schedule data
+* As of now a lazy hack for resetting data while testing
+*
+* @TODO: Remove BCB specific data from this plugin. Not the right place
+*/
 function bcbp_plugin_activate()
 {
     global $wpdb, $bcbp_db_version, $bcbp_db_prefix;
@@ -81,7 +89,12 @@ function bcbp_plugin_activate()
     
 }
 
-
+/**
+* Executed every time the administrator de-activates the plugin from the Plugin menu
+* As of now, deletes most of the options from wp_options
+*
+* @TODO: Do we need to delete these options here?
+*/
 function bcbp_plugin_deactivate()
 {
     
@@ -95,6 +108,12 @@ function bcbp_plugin_deactivate()
 }
 
 
+/**
+* Executed when the administrator deletes the plugin from the Plugin menu
+* Removes all tables used by the plugin, as well as some metadata from wp_options
+*
+* @TODO: Test!
+*/
 function bcbp_plugin_uninstall()
 {
     global $wpdb, $bcbp_db_version, $bcbp_db_prefix;
@@ -110,13 +129,18 @@ function bcbp_plugin_uninstall()
 }
 
 
-
-
+/**
+* Add a link to the Plugin Admin page to the WP sidebar/menu
+*/
 function bcbp_add_admin_menu()
 {
     add_menu_page('BCB Platform Administration', 'BCB Platform Admin', 'manage_options', 'bcbp_admin', 'bcbp_admin_content_callback');
 }
 
+/**
+* Render the Admin page for the plugin
+* This is the meat yo!
+*/
 function bcbp_admin_content_callback()
 {
     
@@ -256,20 +280,16 @@ function bcbp_admin_content_callback()
 
 add_action("admin_enqueue_scripts", "bcbp_enqueue_admin_scripts");
 
+/**
+* Hook in the JS file for the admin page of the plugin
+*/
 function bcbp_enqueue_admin_scripts()
 {
-    
-    
     wp_enqueue_script("bcbp_admin_script", plugin_dir_url(__FILE__)."bcbp_script.js", array('jquery'));
-    
-    
 }
 
 
-
-
 add_action("wp_ajax_bcbp_tracks_form", "bcbp_get_tracks_form");
-
 
 function bcbp_get_tracks_form($hook)
 {
