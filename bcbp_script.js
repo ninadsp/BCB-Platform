@@ -69,5 +69,19 @@ jQuery(document).ready(function($){
         }
     });
     
-    
+   /**
+   * Schedule
+   */
+   $("#bcbp_form_post_speaker").submit(function(e){
+        e.preventDefault();
+
+        data = {
+            action: 'bcbp_schedule_post_speaker',
+            speaker_username: $("#speaker_username").val()
+        };
+
+        $.post(ajaxurl, data, function (response) {
+            console.log(response);
+        });
+   });
 });

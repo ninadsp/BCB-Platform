@@ -34,7 +34,7 @@ function bcbp_plugin_activate()
 
     add_option("bcbp_num_tracks", 6);
     add_option("bcbp_num_slots", 11);
-    add_option("bcbp_category", 6);
+    add_option("bcbp_category", 2);
     add_option("bcbp_android_version", 0);
 
     $TRACKS = array('Asteroids', 'Battleship', 'Contra', 'Diablo', 'Everquest', 'Fable');
@@ -146,6 +146,7 @@ function bcbp_admin_content_callback()
     
     $NUM_TRACKS = get_option("bcbp_num_tracks");
     $NUM_SLOTS = get_option("bcbp_num_slots");
+    $CATEGORY = get_option("bcbp_category");
     
     $TRACKS = get_option("bcbp_trackdata");
     $SLOTS = get_option("bcbp_slotdata");
@@ -175,6 +176,7 @@ function bcbp_admin_content_callback()
                 // Validate and save options POSTed
                 $NUM_TRACKS = (int) stripslashes($_REQUEST['num_tracks']);
                 $NUM_SLOTS = (int) stripslashes($_REQUEST['num_slots']);
+                $CATEGORY = (int) stripslashes($_REQUEST['category']);
 
                 $TRACKS = array();
                 for($i = 0; $i < $NUM_TRACKS; $i++) {
@@ -191,6 +193,7 @@ function bcbp_admin_content_callback()
                 
                 update_option('bcbp_num_tracks', $NUM_TRACKS);
                 update_option('bcbp_num_slots', $NUM_SLOTS);
+                update_option('bcbp_category', $CATEGORY);
                 update_option('bcbp_trackdata', $TRACKS);
                 update_option('bcbp_slotdata', $SLOTS);
  
@@ -209,6 +212,11 @@ function bcbp_admin_content_callback()
         		<div class="bcbp_input_container">
                     <label for="num_slots">Number of slots</label>
             		<input name="num_slots" id="num_slots" type="number" value="<?php echo $NUM_SLOTS; ?>" />
+                </div>
+
+                <div class="bcbp-_input_container">
+                    <label for="category">Category</label>
+                    <input name="category" id="category" type="number" value="<?php echo $CATEGORY; ?>" />
                 </div>
 
                 <div class="clear">&nbsp;</div>
@@ -254,10 +262,35 @@ function bcbp_admin_content_callback()
     <!-- End div #bcbp_setup_container -->
     
     <?php
+            // End case 'setup':
             break;
             
             case 'schedule':
-                # code...
+                ?>
+    <div id="bcbp_schedule_container">
+        
+        <h3>Select user</h3>
+        <form method="POST" id="bcbp_form_post_speaker" action="" class="wp-admin">
+            <fieldset>
+        		
+                <div class="bcbp_input_container">
+                    <label for="speaker_username">Enter Speaker username: </label>
+            		<input name="speaker_username" id="speaker_username" type="text" />
+                </div>
+
+                <input name="speaker_submit" id="speaker_submit" type="submit" class="button button-primary" value="Get Sessions" />
+
+            </fieldset>
+        </form>
+
+        <h3>Select sessions</h3>
+
+        <h3>Current Pool</h3>
+        
+    </div>
+    <!-- End div #bcbp_schedule_container -->
+                <?php
+                // End case 'schedule':
                 break;
 
             case 'manual':
@@ -288,16 +321,62 @@ function bcbp_enqueue_admin_scripts()
     wp_enqueue_script("bcbp_admin_script", plugin_dir_url(__FILE__)."bcbp_script.js", array('jquery'));
 }
 
-
-add_action("wp_ajax_bcbp_tracks_form", "bcbp_get_tracks_form");
-
-function bcbp_get_tracks_form($hook)
+/**
+* Function to return an array of users attending a session
+*/
+function bcbp_attending_users($post_id)
 {
-    
-    echo "TYEST".$hook;
-    die();
-    
+    return get_post_meta($post_id, 'user_attending');
+}
+/**
+* Utility function used by uasort an array of sessions based on count of attendies
+*/
+function bcbp_sort_by_attendies($a, $b)
+{
+    if($a['attendies'] == $b['attendies'])
+        return 0;
+
+    return $a['attendies'] > $b['attendies'] ? -1 : 1 ;
 }
 
+/**
+* AJAX Functions
+*/
+
+/**
+* Executed for the Schedule tab, to get a list of sessions by a speaker
+*/
+add_action('wp_ajax_bcbp_schedule_post_speaker', 'bcbp_ajax_schedule_post_speaker');
+
+function bcbp_ajax_schedule_post_speaker()
+{
+    $speaker_username =  trim($_REQUEST['speaker_username']);
+    $bcbp_category = get_option('bcbp_category');
+
+    $output = array();
+
+    $query = new WP_Query(array ( "cat" => $bcbp_category, "author_name" => $speaker_username ) );
+
+    if($query->have_posts())
+    {
+        while($query->have_posts())
+        {
+            $query->the_post();
+            $curr_post = array();
+            $curr_post['id'] = get_the_ID();
+            $curr_post['title'] = get_the_title();
+            $curr_post['attendies'] = count(bcbp_attending_users($curr_post['id']));
+
+            array_push($output, $curr_post);
+        }
+
+    }
+    uasort($output, 'bcbp_sort_by_attendies');
+
+    echo json_encode($output);
+    die();
+//    echo $_REQUEST['speaker_username'];
+  //  die();
+}
 
 ?>
